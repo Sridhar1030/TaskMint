@@ -12,9 +12,13 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(cookieParser());
 
-import { userRouter } from "./routers/user.routes.js";
+import { userRouter } from "./routes/user.router.js";
 
 app.use("/api/v1/auth", userRouter);
 
+//test route
+app.get("/", (req, res) => {
+	res.send("TaskMint API");
+});
+
 export { app };
-    
