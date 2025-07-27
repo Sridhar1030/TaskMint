@@ -14,9 +14,8 @@ const Login = () => {
     const googleLogin = useGoogleLogin({
         onSuccess: async (tokenResponse) => {
             console.log('Google login successful:', tokenResponse);
-            // Here you can handle the Google login success
-            // For now, we'll just navigate to home
-            navigate('/home');
+            // Redirect to Gmail page after successful Google login
+            navigate('/gmail');
         },
         onError: error => {
             console.log('Google login failed:', error);

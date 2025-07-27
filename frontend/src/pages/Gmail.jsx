@@ -4,17 +4,28 @@ import axios from 'axios';
 
 const Gmail = () => {
     const [messages, setMessages] = useState([]);
+    const [labels, setLabels] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [user, setUser] = useState(null);
+    const [selectedLabel, setSelectedLabel] = useState('INBOX');
+    const [showCompose, setShowCompose] = useState(false);
+    const [composeData, setComposeData] = useState({
+        to: '',
+        subject: '',
+        body: ''
+    });
+    const [accessToken, setAccessToken] = useState(null);
 
     const login = useGoogleLogin({
-        scope: 'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/userinfo.email',
+        scope: 'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/gmail.modify https://www.googleapis.com/auth/userinfo.email',
         onSuccess: async (tokenResponse) => {
             console.log('Access Token:', tokenResponse.access_token);
+            setAccessToken(tokenResponse.access_token);
             setIsAuthenticated(true);
-            await fetchGmailMessages(tokenResponse.access_token);
             await fetchUserInfo(tokenResponse.access_token);
+            await fetchLabels(tokenResponse.access_token);
+            await fetchGmailMessages(tokenResponse.access_token);
         },
         onError: error => {
             console.log('Login Failed:', error);
@@ -22,13 +33,13 @@ const Gmail = () => {
         },
     });
 
-    const fetchUserInfo = async (accessToken) => {
+    const fetchUserInfo = async (token) => {
         try {
             const response = await axios.get(
                 'https://www.googleapis.com/oauth2/v2/userinfo',
                 {
                     headers: {
-                        Authorization: `Bearer ${accessToken}`,
+                        Authorization: `Bearer ${token}`,
                     },
                 }
             );
@@ -38,39 +49,59 @@ const Gmail = () => {
         }
     };
 
-    const fetchGmailMessages = async (accessToken) => {
+    const fetchLabels = async (token) => {
+        try {
+            const response = await axios.get(
+                'https://gmail.googleapis.com/gmail/v1/users/me/labels',
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
+            setLabels(response.data.labels || []);
+        } catch (error) {
+            console.error('Error fetching labels:', error);
+        }
+    };
+
+    const fetchGmailMessages = async (token, label = 'INBOX') => {
         setIsLoading(true);
         try {
             const response = await axios.get(
-                'https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=20',
+                `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=20&labelIds=${label}`,
                 {
                     headers: {
-                        Authorization: `Bearer ${accessToken}`,
+                        Authorization: `Bearer ${token}`,
                     },
                 }
             );
 
-            // Fetch detailed message information for each message
-            const messageDetails = await Promise.all(
-                response.data.messages.map(async (message) => {
-                    try {
-                        const detailResponse = await axios.get(
-                            `https://gmail.googleapis.com/gmail/v1/users/me/messages/${message.id}`,
-                            {
-                                headers: {
-                                    Authorization: `Bearer ${accessToken}`,
-                                },
-                            }
-                        );
-                        return detailResponse.data;
-                    } catch (error) {
-                        console.error('Error fetching message details:', error);
-                        return null;
-                    }
-                })
-            );
+            if (response.data.messages) {
+                // Fetch detailed message information for each message
+                const messageDetails = await Promise.all(
+                    response.data.messages.map(async (message) => {
+                        try {
+                            const detailResponse = await axios.get(
+                                `https://gmail.googleapis.com/gmail/v1/users/me/messages/${message.id}`,
+                                {
+                                    headers: {
+                                        Authorization: `Bearer ${token}`,
+                                    },
+                                }
+                            );
+                            return detailResponse.data;
+                        } catch (error) {
+                            console.error('Error fetching message details:', error);
+                            return null;
+                        }
+                    })
+                );
 
-            setMessages(messageDetails.filter(msg => msg !== null));
+                setMessages(messageDetails.filter(msg => msg !== null));
+            } else {
+                setMessages([]);
+            }
         } catch (error) {
             console.error('Error fetching Gmail messages:', error);
             alert('Failed to fetch Gmail messages. Please try again.');
@@ -79,11 +110,56 @@ const Gmail = () => {
         }
     };
 
+    const handleLabelClick = (labelId) => {
+        setSelectedLabel(labelId);
+        fetchGmailMessages(accessToken, labelId);
+    };
+
+    const handleCompose = () => {
+        setShowCompose(true);
+    };
+
+    const handleSendEmail = async () => {
+        if (!composeData.to || !composeData.subject || !composeData.body) {
+            alert('Please fill in all fields');
+            return;
+        }
+
+        try {
+            const emailContent = `To: ${composeData.to}\r\nSubject: ${composeData.subject}\r\n\r\n${composeData.body}`;
+            const encodedEmail = btoa(emailContent).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+            await axios.post(
+                'https://gmail.googleapis.com/gmail/v1/users/me/messages/send',
+                {
+                    raw: encodedEmail
+                },
+                {
+                    headers: {
+                        Authorization: `Bearer ${accessToken}`,
+                        'Content-Type': 'application/json',
+                    },
+                }
+            );
+
+            alert('Email sent successfully!');
+            setShowCompose(false);
+            setComposeData({ to: '', subject: '', body: '' });
+        } catch (error) {
+            console.error('Error sending email:', error);
+            alert('Failed to send email. Please try again.');
+        }
+    };
+
     const handleLogout = () => {
         googleLogout();
         setIsAuthenticated(false);
         setMessages([]);
+        setLabels([]);
         setUser(null);
+        setAccessToken(null);
+        setSelectedLabel('INBOX');
+        setShowCompose(false);
     };
 
     const formatDate = (timestamp) => {
@@ -95,9 +171,14 @@ const Gmail = () => {
         return header ? header.value : '';
     };
 
+    const getLabelName = (labelId) => {
+        const label = labels.find(l => l.id === labelId);
+        return label ? label.name : labelId;
+    };
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-900/95 via-black/95 to-gray-800/95 backdrop-blur-sm">
-            <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 {/* Header */}
                 <div className="text-center mb-8">
                     <h1 className="text-4xl font-bold text-white mb-2">Gmail Inbox</h1>
@@ -131,75 +212,185 @@ const Gmail = () => {
                         </button>
                     </div>
                 ) : (
-                    /* Gmail Inbox */
-                    <div className="space-y-6">
-                        {/* User Info and Logout */}
-                        <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6 shadow-2xl">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center space-x-4">
-                                    {user?.picture && (
-                                        <img 
-                                            src={user.picture} 
-                                            alt="Profile" 
-                                            className="w-10 h-10 rounded-full"
-                                        />
-                                    )}
-                                    <div>
-                                        <h3 className="text-white font-semibold">{user?.name || 'User'}</h3>
-                                        <p className="text-gray-400 text-sm">{user?.email}</p>
-                                    </div>
+                    /* Gmail Interface */
+                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                        {/* Sidebar - Labels */}
+                        <div className="lg:col-span-1">
+                            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6 shadow-2xl">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h3 className="text-lg font-semibold text-white">Labels</h3>
+                                    <button
+                                        onClick={handleCompose}
+                                        className="bg-orange-500 text-white px-3 py-1 rounded-lg hover:bg-orange-600 transition duration-200 text-sm"
+                                    >
+                                        Compose
+                                    </button>
                                 </div>
-                                <button
-                                    onClick={handleLogout}
-                                    className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition duration-200"
-                                >
-                                    Logout
-                                </button>
+                                <div className="space-y-2">
+                                    {labels.map((label) => (
+                                        <button
+                                            key={label.id}
+                                            onClick={() => handleLabelClick(label.id)}
+                                            className={`w-full text-left px-3 py-2 rounded-lg transition duration-200 ${
+                                                selectedLabel === label.id
+                                                    ? 'bg-orange-500 text-white'
+                                                    : 'text-gray-300 hover:bg-gray-700/50'
+                                            }`}
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <span className="truncate">{label.name}</span>
+                                                {label.messagesTotal > 0 && (
+                                                    <span className="text-xs bg-gray-600 px-2 py-1 rounded">
+                                                        {label.messagesTotal}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
                         </div>
 
-                        {/* Messages List */}
-                        <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl shadow-2xl">
-                            <div className="p-6 border-b border-gray-700">
-                                <h2 className="text-xl font-semibold text-white">Inbox</h2>
-                                <p className="text-gray-400 text-sm">{messages.length} messages</p>
-                            </div>
-                            
-                            {isLoading ? (
-                                <div className="p-8 text-center">
-                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto"></div>
-                                    <p className="text-gray-400 mt-4">Loading your emails...</p>
+                        {/* Main Content - Messages */}
+                        <div className="lg:col-span-3">
+                            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl shadow-2xl">
+                                <div className="p-6 border-b border-gray-700">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <h2 className="text-xl font-semibold text-white">
+                                                {getLabelName(selectedLabel)}
+                                            </h2>
+                                            <p className="text-gray-400 text-sm">{messages.length} messages</p>
+                                        </div>
+                                        <div className="flex items-center space-x-4">
+                                            {user?.picture && (
+                                                <img 
+                                                    src={user.picture} 
+                                                    alt="Profile" 
+                                                    className="w-8 h-8 rounded-full"
+                                                />
+                                            )}
+                                            <button
+                                                onClick={handleLogout}
+                                                className="bg-red-600 text-white px-3 py-1 rounded-lg hover:bg-red-700 transition duration-200 text-sm"
+                                            >
+                                                Logout
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
-                            ) : messages.length > 0 ? (
-                                <div className="divide-y divide-gray-700">
-                                    {messages.map((message) => (
-                                        <div key={message.id} className="p-6 hover:bg-gray-700/30 transition duration-200">
-                                            <div className="flex items-start justify-between">
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center space-x-3 mb-2">
-                                                        <span className="text-sm font-medium text-orange-400">
-                                                            {getHeaderValue(message.payload.headers, 'From')}
-                                                        </span>
-                                                        <span className="text-xs text-gray-500">
-                                                            {formatDate(message.internalDate)}
-                                                        </span>
+                                
+                                {isLoading ? (
+                                    <div className="p-8 text-center">
+                                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto"></div>
+                                        <p className="text-gray-400 mt-4">Loading your emails...</p>
+                                    </div>
+                                ) : messages.length > 0 ? (
+                                    <div className="divide-y divide-gray-700">
+                                        {messages.map((message) => (
+                                            <div key={message.id} className="p-6 hover:bg-gray-700/30 transition duration-200">
+                                                <div className="flex items-start justify-between">
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center space-x-3 mb-2">
+                                                            <span className="text-sm font-medium text-orange-400">
+                                                                {getHeaderValue(message.payload.headers, 'From')}
+                                                            </span>
+                                                            <span className="text-xs text-gray-500">
+                                                                {formatDate(message.internalDate)}
+                                                            </span>
+                                                        </div>
+                                                        <h3 className="text-white font-medium mb-1 truncate">
+                                                            {getHeaderValue(message.payload.headers, 'Subject') || '(No Subject)'}
+                                                        </h3>
+                                                        <p className="text-gray-400 text-sm line-clamp-2">
+                                                            {message.snippet}
+                                                        </p>
+                                                        {message.labelIds && message.labelIds.length > 0 && (
+                                                            <div className="flex flex-wrap gap-1 mt-2">
+                                                                {message.labelIds.map((labelId) => (
+                                                                    <span
+                                                                        key={labelId}
+                                                                        className="text-xs bg-gray-600 text-gray-300 px-2 py-1 rounded"
+                                                                    >
+                                                                        {getLabelName(labelId)}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        )}
                                                     </div>
-                                                    <h3 className="text-white font-medium mb-1 truncate">
-                                                        {getHeaderValue(message.payload.headers, 'Subject') || '(No Subject)'}
-                                                    </h3>
-                                                    <p className="text-gray-400 text-sm line-clamp-2">
-                                                        {message.snippet}
-                                                    </p>
                                                 </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="p-8 text-center">
+                                        <p className="text-gray-400">No messages found</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Compose Modal */}
+                {showCompose && (
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+                        <div className="bg-gray-800/95 border border-gray-700/50 rounded-2xl p-6 w-full max-w-2xl mx-4">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-xl font-semibold text-white">Compose Email</h3>
+                                <button
+                                    onClick={() => setShowCompose(false)}
+                                    className="text-gray-400 hover:text-white transition duration-200"
+                                >
+                                    ✕
+                                </button>
+                            </div>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-300 mb-2">To:</label>
+                                    <input
+                                        type="email"
+                                        value={composeData.to}
+                                        onChange={(e) => setComposeData({...composeData, to: e.target.value})}
+                                        className="w-full px-4 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                                        placeholder="recipient@example.com"
+                                    />
                                 </div>
-                            ) : (
-                                <div className="p-8 text-center">
-                                    <p className="text-gray-400">No messages found</p>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-300 mb-2">Subject:</label>
+                                    <input
+                                        type="text"
+                                        value={composeData.subject}
+                                        onChange={(e) => setComposeData({...composeData, subject: e.target.value})}
+                                        className="w-full px-4 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                                        placeholder="Subject"
+                                    />
                                 </div>
-                            )}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-300 mb-2">Message:</label>
+                                    <textarea
+                                        value={composeData.body}
+                                        onChange={(e) => setComposeData({...composeData, body: e.target.value})}
+                                        rows={8}
+                                        className="w-full px-4 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none"
+                                        placeholder="Write your message here..."
+                                    />
+                                </div>
+                                <div className="flex justify-end space-x-3">
+                                    <button
+                                        onClick={() => setShowCompose(false)}
+                                        className="px-4 py-2 text-gray-300 hover:text-white transition duration-200"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleSendEmail}
+                                        className="bg-orange-500 text-white px-6 py-2 rounded-lg hover:bg-orange-600 transition duration-200"
+                                    >
+                                        Send
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 )}
