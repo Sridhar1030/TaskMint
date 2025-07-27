@@ -65,6 +65,12 @@ const Navbar = () => {
                         >
                             Gmail
                         </button>
+                        <button
+                            onClick={() => navigate('/tasks')}
+                            className="text-gray-300 hover:text-orange-400 transition duration-200"
+                        >
+                            Tasks
+                        </button>
                         {!isLoggedIn && (
                             <>
                                 <button

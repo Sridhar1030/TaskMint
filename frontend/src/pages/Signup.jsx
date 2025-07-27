@@ -16,7 +16,7 @@ const Signup = () => {
     const [errors, setErrors] = useState({});
 
     const googleLogin = useGoogleLogin({
-        scope: 'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/gmail.modify https://www.googleapis.com/auth/userinfo.email',
+        scope: 'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/userinfo.email',
         onSuccess: async (tokenResponse) => {
             console.log('Google signup successful:', tokenResponse);
             // Store the access token for Gmail access

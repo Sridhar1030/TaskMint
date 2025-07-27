@@ -12,7 +12,7 @@ const Login = () => {
     const [isLoading, setIsLoading] = useState(false);
 
     const googleLogin = useGoogleLogin({
-        scope: 'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/gmail.modify https://www.googleapis.com/auth/userinfo.email',
+        scope: 'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/userinfo.email',
         onSuccess: async (tokenResponse) => {
             console.log('Google login successful:', tokenResponse);
             // Store the access token for Gmail access

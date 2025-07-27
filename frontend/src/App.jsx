@@ -3,6 +3,7 @@ import Login from './pages/Login'
 import Signup from './pages/Signup'
 import Home from './pages/Home'
 import Gmail from './pages/Gmail'
+import Tasks from './pages/Tasks'
 import BackgroundShapes from './components/BackgroundShapes'
 import Navbar from './components/Navbar'
 import './App.css'
@@ -20,6 +21,7 @@ function App() {
             <Route path="/signup" element={<Signup />} />
             <Route path="/home" element={<Home />} />
             <Route path="/gmail" element={<Gmail />} />
+            <Route path="/tasks" element={<Tasks />} />
           </Routes>
         </div>
       </div>
