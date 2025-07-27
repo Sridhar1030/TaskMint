@@ -1,12 +1,41 @@
 import { useNavigate } from 'react-router-dom';
 import { tokenManager, authAPI } from '../utils/api';
+import { useState, useEffect } from 'react';
+import axios from 'axios';
 
 const Navbar = () => {
     const navigate = useNavigate();
     const customUser = tokenManager.getUser();
+    const [googleUser, setGoogleUser] = useState(null);
 
-    // Check if user is logged in (only custom auth)
-    const isLoggedIn = customUser;
+    // Check for Google authentication
+    useEffect(() => {
+        const checkGoogleAuth = async () => {
+            const gmailToken = localStorage.getItem('gmail_access_token');
+            if (gmailToken) {
+                try {
+                    const response = await axios.get(
+                        'https://www.googleapis.com/oauth2/v2/userinfo',
+                        {
+                            headers: {
+                                Authorization: `Bearer ${gmailToken}`,
+                            },
+                        }
+                    );
+                    setGoogleUser(response.data);
+                } catch (error) {
+                    console.error('Error fetching Google user info:', error);
+                    // Clear invalid token
+                    localStorage.removeItem('gmail_access_token');
+                }
+            }
+        };
+
+        checkGoogleAuth();
+    }, []);
+
+    // Check if user is logged in (custom auth or Google auth)
+    const isLoggedIn = customUser || googleUser;
 
     return (
         <nav className="bg-gray-900/80 backdrop-blur-sm border-b border-gray-700/50 sticky top-0 z-50 ">
@@ -65,22 +94,39 @@ const Navbar = () => {
                             </button>
                         ) : (
                             <div className="flex items-center space-x-4">
-                                {/* Show user info */}
-                                <div className="text-gray-300 text-sm">
-                                    <span>Welcome, {customUser?.fullName || customUser?.username}</span>
+                                {/* Show user info with profile picture */}
+                                <div className="flex items-center space-x-3">
+                                    <div className="text-gray-300 text-sm">
+                                        <span>Welcome, {googleUser?.name || customUser?.fullName || customUser?.username}</span>
+                                    </div>
+                                    {googleUser?.picture && (
+                                        <img 
+                                            src={googleUser.picture} 
+                                            alt="Profile" 
+                                            className="w-10 h-10 rounded-full"
+                                        />
+                                    )}
                                 </div>
 
-                                {/* Custom logout button */}
+                                {/* Logout button */}
                                 <button
                                     onClick={async () => {
-                                        try {
-                                            await authAPI.logout();
-                                            tokenManager.clearAuth();
+                                        if (googleUser) {
+                                            // Google logout
+                                            localStorage.removeItem('gmail_access_token');
+                                            setGoogleUser(null);
                                             navigate('/login');
-                                        } catch (error) {
-                                            console.error('Logout error:', error);
-                                            tokenManager.clearAuth();
-                                            navigate('/login');
+                                        } else {
+                                            // Custom auth logout
+                                            try {
+                                                await authAPI.logout();
+                                                tokenManager.clearAuth();
+                                                navigate('/login');
+                                            } catch (error) {
+                                                console.error('Logout error:', error);
+                                                tokenManager.clearAuth();
+                                                navigate('/login');
+                                            }
                                         }
                                     }}
                                     className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition duration-200 text-sm font-medium"

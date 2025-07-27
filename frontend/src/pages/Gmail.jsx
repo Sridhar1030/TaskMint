@@ -17,11 +17,24 @@ const Gmail = () => {
     });
     const [accessToken, setAccessToken] = useState(null);
 
+    // Check for existing access token on component mount
+    useEffect(() => {
+        const existingToken = localStorage.getItem('gmail_access_token');
+        if (existingToken) {
+            setAccessToken(existingToken);
+            setIsAuthenticated(true);
+            fetchUserInfo(existingToken);
+            fetchLabels(existingToken);
+            fetchGmailMessages(existingToken);
+        }
+    }, []);
+
     const login = useGoogleLogin({
         scope: 'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/gmail.modify https://www.googleapis.com/auth/userinfo.email',
         onSuccess: async (tokenResponse) => {
             console.log('Access Token:', tokenResponse.access_token);
             setAccessToken(tokenResponse.access_token);
+            localStorage.setItem('gmail_access_token', tokenResponse.access_token);
             setIsAuthenticated(true);
             await fetchUserInfo(tokenResponse.access_token);
             await fetchLabels(tokenResponse.access_token);
@@ -46,6 +59,12 @@ const Gmail = () => {
             setUser(response.data);
         } catch (error) {
             console.error('Error fetching user info:', error);
+            if (error.response?.status === 401) {
+                // Token expired, clear it and show login
+                localStorage.removeItem('gmail_access_token');
+                setIsAuthenticated(false);
+                setAccessToken(null);
+            }
         }
     };
 
@@ -62,6 +81,12 @@ const Gmail = () => {
             setLabels(response.data.labels || []);
         } catch (error) {
             console.error('Error fetching labels:', error);
+            if (error.response?.status === 401) {
+                // Token expired, clear it and show login
+                localStorage.removeItem('gmail_access_token');
+                setIsAuthenticated(false);
+                setAccessToken(null);
+            }
         }
     };
 
@@ -104,7 +129,14 @@ const Gmail = () => {
             }
         } catch (error) {
             console.error('Error fetching Gmail messages:', error);
-            alert('Failed to fetch Gmail messages. Please try again.');
+            if (error.response?.status === 401) {
+                // Token expired, clear it and show login
+                localStorage.removeItem('gmail_access_token');
+                setIsAuthenticated(false);
+                setAccessToken(null);
+            } else {
+                alert('Failed to fetch Gmail messages. Please try again.');
+            }
         } finally {
             setIsLoading(false);
         }
@@ -153,6 +185,7 @@ const Gmail = () => {
 
     const handleLogout = () => {
         googleLogout();
+        localStorage.removeItem('gmail_access_token');
         setIsAuthenticated(false);
         setMessages([]);
         setLabels([]);
