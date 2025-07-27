@@ -1,17 +1,28 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import Login from './pages/Login'
+import Signup from './pages/Signup'
+import Home from './pages/Home'
+import BackgroundShapes from './components/BackgroundShapes'
+import Navbar from './components/Navbar'
 import './App.css'
 
+const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <div className='text-3xl font-bold underline'>
-        Hello
+    <Router>
+      <div className="App relative">
+        <BackgroundShapes />
+        <div className="relative z-10">
+          <Navbar />
+          <Routes>
+            <Route path="/" element={<Navigate to="/login" replace />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route path="/home" element={<Home />} />
+          </Routes>
+        </div>
       </div>
-    </>
+    </Router>
   )
 }
 
