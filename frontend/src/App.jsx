@@ -2,11 +2,11 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Login from './pages/Login'
 import Signup from './pages/Signup'
 import Home from './pages/Home'
+import Gmail from './pages/Gmail'
 import BackgroundShapes from './components/BackgroundShapes'
 import Navbar from './components/Navbar'
 import './App.css'
 
-const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 function App() {
   return (
     <Router>
@@ -19,6 +19,7 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/home" element={<Home />} />
+            <Route path="/gmail" element={<Gmail />} />
           </Routes>
         </div>
       </div>
