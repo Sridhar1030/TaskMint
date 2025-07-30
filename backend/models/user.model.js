@@ -6,10 +6,9 @@ const userShema = new mongoose.Schema(
     {
         username: {
             type: String,
-            required: true,
-            unique: true,
             trim: true,
             index: true,
+            sparse: true
         },
         email: {
             type: String,
@@ -21,19 +20,26 @@ const userShema = new mongoose.Schema(
         },
         fullName: {
             type: String,
-            required: true,
             trim: true,
             index: true,
+            sparse: true
         },
         password: {
             type: String,
-            required: [true, "Password is required"],
+            required: function() {
+                return this.userType === 'custom';
+            }
+        },
+        userType: {
+            type: String,
+            enum: ['custom', 'gmail'],
+            required: true,
+            default: 'custom'
         },
         refreshToken: {
             type: String,
         },
     },
-
     {
         timestamps: true,
         writeConcern: {
@@ -45,13 +51,14 @@ const userShema = new mongoose.Schema(
 );
 
 userShema.pre("save", function (next) {
-    if (!this.isModified("password")) return next();
+    if (!this.isModified("password") || this.userType === 'gmail') return next();
 
     this.password = bcrypt.hashSync(this.password, 10);
     next();
 });
 
 userShema.methods.checkPassword = async function (password) {
+    if (this.userType === 'gmail') return true;
     return await bcrypt.compare(password, this.password);
 };
 
@@ -59,8 +66,8 @@ userShema.methods.generateAccessToken = function () {
     return jwt.sign(
         {
             id: this._id,
-            username: this.username,
             email: this.email,
+            userType: this.userType
         },
         process.env.ACCESS_TOKEN_SECRET,
         {

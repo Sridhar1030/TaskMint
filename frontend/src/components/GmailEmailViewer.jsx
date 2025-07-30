@@ -1,4 +1,5 @@
 import React from 'react';
+import { langflowAPI } from '../utils/api.js';
 
 const GmailEmailViewer = ({ selectedEmail, getEmailContent }) => {
     const formatDate = (timestamp) => {
@@ -8,6 +9,30 @@ const GmailEmailViewer = ({ selectedEmail, getEmailContent }) => {
     const getHeaderValue = (headers, name) => {
         const header = headers.find(h => h.name.toLowerCase() === name.toLowerCase());
         return header ? header.value : '';
+    };
+
+    const handleExtractText = async () => {
+        if (!selectedEmail) return;
+
+        const emailContent = getEmailContent(selectedEmail);
+        console.log('Extracted Email Content:', emailContent);
+
+        // Copy to clipboard
+        navigator.clipboard.writeText(emailContent).then(() => {
+            console.log('Email content copied to clipboard');
+        }).catch(err => {
+            console.error('Failed to copy to clipboard:', err);
+        });
+
+        // Send to LangFlow API
+        try {
+            const response = await langflowAPI.sendText(emailContent);
+            console.log('LangFlow API Response:', response);
+            alert('Text sent to LangFlow successfully!');
+        } catch (error) {
+            console.error('Failed to send to LangFlow:', error);
+            alert('Failed to send text to LangFlow. Check console for details.');
+        }
     };
 
     if (!selectedEmail) {
@@ -34,9 +59,17 @@ const GmailEmailViewer = ({ selectedEmail, getEmailContent }) => {
                         <h2 className="text-xl font-semibold text-white">
                             {getHeaderValue(selectedEmail.payload.headers, 'Subject') || '(No Subject)'}
                         </h2>
-                        <span className="text-sm text-gray-400">
-                            {formatDate(selectedEmail.internalDate)}
-                        </span>
+                        <div className="flex items-center space-x-3">
+                            <button
+                                onClick={handleExtractText}
+                                className="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1 rounded text-sm font-medium transition duration-200"
+                            >
+                                Extract Text
+                            </button>
+                            <span className="text-sm text-gray-400">
+                                {formatDate(selectedEmail.internalDate)}
+                            </span>
+                        </div>
                     </div>
                     <div className="space-y-2">
                         <div className="flex items-center space-x-2">
@@ -65,9 +98,9 @@ const GmailEmailViewer = ({ selectedEmail, getEmailContent }) => {
                 {/* Email Body */}
                 <div className="flex-1 p-6 overflow-y-auto min-h-0">
                     <div className="prose prose-invert max-w-none">
-                        <div 
+                        <div
                             className="text-gray-300 leading-relaxed whitespace-pre-wrap break-words overflow-hidden"
-                            style={{ 
+                            style={{
                                 wordBreak: 'break-word',
                                 overflowWrap: 'break-word'
                             }}

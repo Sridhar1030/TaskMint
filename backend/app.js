@@ -25,9 +25,11 @@ app.use(cookieParser());
 
 import { userRouter } from "./routes/user.router.js";
 import { taskRouter } from "./routes/task.router.js";
+import { langflowRouter } from "./routes/langflow.router.js";
 
 app.use("/api/v1/auth", userRouter);
 app.use("/api/tasks", taskRouter);
+app.use("/langflow", langflowRouter);
 
 // test route
 app.get("/", (req, res) => {

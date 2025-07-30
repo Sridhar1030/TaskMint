@@ -148,4 +148,69 @@ const logoutUser = asyncHandler(async (req, res) => {
 		});
 });
 
-export { registerUser, loginUser, logoutUser };
+const gmailAuth = asyncHandler(async (req, res) => {
+	const { gmailToken } = req.body;
+
+	if (!gmailToken) {
+		res.status(400);
+		throw new Error("Gmail token is required");
+	}
+
+	try {
+		// Get user info from Google
+		const response = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+			headers: {
+				Authorization: `Bearer ${gmailToken}`,
+			},
+		});
+
+		if (!response.ok) {
+			res.status(401);
+			throw new Error("Invalid Gmail token");
+		}
+
+		const userInfo = await response.json();
+		const email = userInfo.email;
+
+		// Find or create user
+		let user = await User.findOne({ email });
+
+		if (!user) {
+			// Create new user with Gmail info
+			user = await User.create({
+				email,
+				userType: 'gmail',
+				fullName: userInfo.name || email.split('@')[0],
+				username: email.split('@')[0]
+			});
+		}
+
+		// Generate tokens
+		const { accessToken, refreshToken } = await generateAccessTokenAndRefreshToken(user._id);
+
+		// Remove sensitive fields
+		const userData = user.toObject();
+		delete userData.password;
+		delete userData.refreshToken;
+
+		const options = {
+			httpOnly: true,
+			secure: true,
+		};
+
+		return res
+			.status(200)
+			.cookie("refreshToken", refreshToken, options)
+			.cookie("accessToken", accessToken, options)
+			.json({
+				message: "Gmail authentication successful",
+				user: userData,
+				accessToken,
+			});
+	} catch (error) {
+		res.status(error.status || 500);
+		throw new Error(error.message || "Gmail authentication failed");
+	}
+});
+
+export { registerUser, loginUser, logoutUser, gmailAuth };

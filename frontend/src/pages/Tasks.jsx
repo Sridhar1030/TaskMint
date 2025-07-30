@@ -32,7 +32,7 @@ const Tasks = () => {
                     },
                 });
                 const userInfo = await response.json();
-                userId = userInfo.email;
+                userId = userInfo.id;
                 userType = 'gmail';
             }
 
@@ -59,14 +59,14 @@ const Tasks = () => {
     };
 
     const handleTaskToggle = async (taskId, completed) => {
-                try {
+        try {
             await axios.patch(`${import.meta.env.VITE_API}/api/tasks/${taskId}`, {
                 completed: !completed
             });
-            
-            setTasks(prev => 
-                prev.map(task => 
-                    task._id === taskId 
+
+            setTasks(prev =>
+                prev.map(task =>
+                    task._id === taskId
                         ? { ...task, completed: !completed }
                         : task
                 )
@@ -74,9 +74,9 @@ const Tasks = () => {
         } catch (error) {
             console.error('Error updating task:', error);
             // Update locally if API fails
-            setTasks(prev => 
-                prev.map(task => 
-                    task._id === taskId 
+            setTasks(prev =>
+                prev.map(task =>
+                    task._id === taskId
                         ? { ...task, completed: !completed }
                         : task
                 )
@@ -157,8 +157,8 @@ const Tasks = () => {
                     <button
                         onClick={() => setFilter('all')}
                         className={`px-4 py-2 rounded-lg transition duration-200 ${filter === 'all'
-                                ? 'bg-orange-500 text-white'
-                                : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50'
+                            ? 'bg-orange-500 text-white'
+                            : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50'
                             }`}
                     >
                         All ({tasks.length})
@@ -166,8 +166,8 @@ const Tasks = () => {
                     <button
                         onClick={() => setFilter('pending')}
                         className={`px-4 py-2 rounded-lg transition duration-200 ${filter === 'pending'
-                                ? 'bg-orange-500 text-white'
-                                : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50'
+                            ? 'bg-orange-500 text-white'
+                            : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50'
                             }`}
                     >
                         Pending ({tasks.filter(t => !t.completed).length})
@@ -175,8 +175,8 @@ const Tasks = () => {
                     <button
                         onClick={() => setFilter('completed')}
                         className={`px-4 py-2 rounded-lg transition duration-200 ${filter === 'completed'
-                                ? 'bg-orange-500 text-white'
-                                : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50'
+                            ? 'bg-orange-500 text-white'
+                            : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50'
                             }`}
                     >
                         Completed ({tasks.filter(t => t.completed).length})
@@ -205,8 +205,8 @@ const Tasks = () => {
                                     <button
                                         onClick={() => handleTaskToggle(task._id, task.completed)}
                                         className={`mt-1 w-5 h-5 rounded border-2 transition duration-200 ${task.completed
-                                                ? 'bg-orange-500 border-orange-500'
-                                                : 'border-gray-400 hover:border-orange-500'
+                                            ? 'bg-orange-500 border-orange-500'
+                                            : 'border-gray-400 hover:border-orange-500'
                                             }`}
                                     >
                                         {task.completed && (

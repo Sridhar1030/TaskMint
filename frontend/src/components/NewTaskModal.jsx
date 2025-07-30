@@ -178,7 +178,7 @@ const NewTaskModal = ({ isOpen, onClose, onSubmit }) => {
                     },
                 });
                 const userInfo = await userResponse.json();
-                userId = userInfo.email;
+                userId = userInfo.id;
                 userEmail = userInfo.email;
                 userType = 'gmail';
             }
