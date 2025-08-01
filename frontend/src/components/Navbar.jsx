@@ -71,6 +71,14 @@ const Navbar = () => {
                         >
                             Tasks
                         </button>
+                        {isLoggedIn && (
+                            <button
+                                onClick={() => navigate('/analytics')}
+                                className="text-gray-300 hover:text-orange-400 transition duration-200"
+                            >
+                                Analytics
+                            </button>
+                        )}
                         {!isLoggedIn && (
                             <>
                                 <button

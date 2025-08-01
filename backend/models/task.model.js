@@ -29,6 +29,10 @@ const taskSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    completedAt: {
+        type: Date,
+        default: null
+    },
     userId: {
         type: String,
         required: true

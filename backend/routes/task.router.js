@@ -4,7 +4,8 @@ import {
     getTasks,
     updateTask,
     deleteTask,
-    parseVoiceInput
+    parseVoiceInput,
+    getTaskAnalytics
 } from '../controllers/task.controller.js';
 
 const taskRouter = express.Router();
@@ -23,5 +24,8 @@ taskRouter.delete('/:id', deleteTask);
 
 // Parse voice input
 taskRouter.post('/parse-voice', parseVoiceInput);
+
+// Get task analytics
+taskRouter.get('/analytics', getTaskAnalytics);
 
 export { taskRouter };

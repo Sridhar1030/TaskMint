@@ -70,6 +70,18 @@ const updateTask = asyncHandler(async (req, res) => {
 	const { id } = req.params;
 	const updateData = req.body;
 
+	// Check if task is being marked as completed
+	if (updateData.completed === true) {
+		// Get current task to check if it wasn't already completed
+		const currentTask = await Task.findById(id);
+		if (currentTask && !currentTask.completed) {
+			updateData.completedAt = new Date();
+		}
+	} else if (updateData.completed === false) {
+		// If task is being marked as incomplete, remove completedAt
+		updateData.completedAt = null;
+	}
+
 	const task = await Task.findByIdAndUpdate(
 		id,
 		{ ...updateData, updatedAt: Date.now() },
@@ -235,4 +247,117 @@ const parseVoiceInput = asyncHandler(async (req, res) => {
 	}
 });
 
-export { createTask, getTasks, updateTask, deleteTask, parseVoiceInput };
+// Get task analytics for a user
+const getTaskAnalytics = asyncHandler(async (req, res) => {
+	const { userId, userType } = req.query;
+
+	if (!userId || !userType) {
+		return res.status(400).json({
+			success: false,
+			message: "userId and userType are required",
+		});
+	}
+
+	try {
+		// Get all tasks for the user
+		const allTasks = await Task.find({ userId, userType }).sort({ createdAt: 1 });
+		const completedTasks = allTasks.filter(task => task.completed && task.completedAt);
+
+		// Calculate completion time for each completed task
+		const tasksWithCompletionTime = completedTasks.map(task => {
+			const createdDate = new Date(task.createdAt);
+			const completedDate = new Date(task.completedAt);
+			const completionTimeHours = (completedDate - createdDate) / (1000 * 60 * 60);
+			
+			return {
+				...task.toObject(),
+				completionTimeHours: Math.round(completionTimeHours * 100) / 100
+			};
+		});
+
+		// Group tasks by completion date for timeline
+		const completionTimeline = {};
+		tasksWithCompletionTime.forEach(task => {
+			const date = new Date(task.completedAt).toDateString();
+			if (!completionTimeline[date]) {
+				completionTimeline[date] = 0;
+			}
+			completionTimeline[date]++;
+		});
+
+		// Group tasks by priority for completion analysis
+		const priorityAnalysis = {
+			low: { total: 0, completed: 0 },
+			medium: { total: 0, completed: 0 },
+			high: { total: 0, completed: 0 },
+			urgent: { total: 0, completed: 0 }
+		};
+
+		allTasks.forEach(task => {
+			priorityAnalysis[task.priority].total++;
+			if (task.completed) {
+				priorityAnalysis[task.priority].completed++;
+			}
+		});
+
+		// Calculate average completion time
+		const avgCompletionTime = tasksWithCompletionTime.length > 0 
+			? tasksWithCompletionTime.reduce((sum, task) => sum + task.completionTimeHours, 0) / tasksWithCompletionTime.length
+			: 0;
+
+		// Create monthly completion data for the last 6 months
+		const monthlyData = {};
+		const now = new Date();
+		for (let i = 5; i >= 0; i--) {
+			const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+			const monthKey = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+			monthlyData[monthKey] = { created: 0, completed: 0 };
+		}
+
+		allTasks.forEach(task => {
+			const createdMonth = new Date(task.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+			if (monthlyData[createdMonth]) {
+				monthlyData[createdMonth].created++;
+			}
+			
+			if (task.completed && task.completedAt) {
+				const completedMonth = new Date(task.completedAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+				if (monthlyData[completedMonth]) {
+					monthlyData[completedMonth].completed++;
+				}
+			}
+		});
+
+		const analytics = {
+			totalTasks: allTasks.length,
+			completedTasks: completedTasks.length,
+			completionRate: allTasks.length > 0 ? (completedTasks.length / allTasks.length * 100).toFixed(1) : 0,
+			avgCompletionTimeHours: Math.round(avgCompletionTime * 100) / 100,
+			priorityAnalysis,
+			monthlyData: Object.entries(monthlyData).map(([month, data]) => ({
+				month,
+				...data
+			})),
+			completionTimeline: Object.entries(completionTimeline).map(([date, count]) => ({
+				date,
+				count
+			})).sort((a, b) => new Date(a.date) - new Date(b.date)),
+			recentCompletions: tasksWithCompletionTime
+				.sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt))
+				.slice(0, 10)
+		};
+
+		res.status(200).json({
+			success: true,
+			analytics
+		});
+	} catch (error) {
+		console.error('Error getting task analytics:', error);
+		res.status(500).json({
+			success: false,
+			message: "Error fetching task analytics"
+		});
+	}
+});
+
+export { createTask, getTasks, updateTask, deleteTask, parseVoiceInput, getTaskAnalytics };
