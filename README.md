@@ -122,4 +122,4 @@ JWT_SECRET=your_jwt_secret
 
 ## 👥 Authors
 
-- Your Name - *Initial work* - [sridhar1030](https://github.com/sridhar1030)
+ *Initial work* - [sridhar1030](https://github.com/sridhar1030)
