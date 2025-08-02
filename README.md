@@ -119,15 +119,7 @@ JWT_SECRET=your_jwt_secret
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-## 📄 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## 👥 Authors
 
-- Your Name - *Initial work* - [YourGithub](https://github.com/yourusername)
-
-## 🙏 Acknowledgments
-
-- Thanks to all contributors who have helped shape TaskMint
-- Special thanks to the open source community
+- Your Name - *Initial work* - [sridhar1030](https://github.com/sridhar1030)
