@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
 const NewTaskModal = ({ isOpen, onClose, onSubmit }) => {
+    console.log('NewTaskModal props:', { isOpen, onClose, onSubmit });
     const [formData, setFormData] = useState({
         title: '',
         deadline: '',
@@ -17,7 +18,7 @@ const NewTaskModal = ({ isOpen, onClose, onSubmit }) => {
     // Enhanced Speech Recognition setup with multiple fallbacks
     useEffect(() => {
         let recognition = null;
-        
+
         // Try different speech recognition APIs
         if (window.SpeechRecognition) {
             recognition = new window.SpeechRecognition();
@@ -64,7 +65,7 @@ const NewTaskModal = ({ isOpen, onClose, onSubmit }) => {
 
         recognition.onerror = (event) => {
             console.error('Speech recognition error:', event.error);
-            
+
             // Handle specific errors
             switch (event.error) {
                 case 'network':
@@ -85,7 +86,7 @@ const NewTaskModal = ({ isOpen, onClose, onSubmit }) => {
                 default:
                     alert(`Speech recognition error: ${event.error}. Please try again.`);
             }
-            
+
             setIsListening(false);
         };
 
@@ -139,9 +140,9 @@ const NewTaskModal = ({ isOpen, onClose, onSubmit }) => {
         input.setAttribute('speech', '');
         input.style.position = 'absolute';
         input.style.left = '-9999px';
-        
+
         document.body.appendChild(input);
-        
+
         input.addEventListener('change', (e) => {
             const speechText = e.target.value;
             if (speechText) {
@@ -149,7 +150,7 @@ const NewTaskModal = ({ isOpen, onClose, onSubmit }) => {
             }
             document.body.removeChild(input);
         });
-        
+
         input.focus();
         input.click();
     };
@@ -162,7 +163,7 @@ const NewTaskModal = ({ isOpen, onClose, onSubmit }) => {
             // Get user ID and email from localStorage
             const customUser = JSON.parse(localStorage.getItem('user'));
             const gmailToken = localStorage.getItem('gmail_access_token');
-            
+
             let userId = null;
             let userEmail = null;
             let userType = null;
@@ -209,7 +210,7 @@ const NewTaskModal = ({ isOpen, onClose, onSubmit }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
         if (!formData.title.trim()) {
             alert('Please enter a task title');
             return;
@@ -219,7 +220,7 @@ const NewTaskModal = ({ isOpen, onClose, onSubmit }) => {
             // Get user ID from localStorage
             const customUser = JSON.parse(localStorage.getItem('user'));
             const gmailToken = localStorage.getItem('gmail_access_token');
-            
+
             let userId = null;
             let userType = null;
 
@@ -278,57 +279,57 @@ const NewTaskModal = ({ isOpen, onClose, onSubmit }) => {
 
     if (!isOpen) return null;
 
+    console.log('NewTaskModal is rendering with isOpen:', isOpen);
+
     return (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-            <div className="bg-gray-800/95 border border-gray-700/50 rounded-2xl shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
-                <div className="flex items-center justify-between p-6 border-b border-gray-700/50">
-                    <h3 className="text-lg font-semibold text-white">Create New Task</h3>
+        <div className="fixed inset-0 overflow-y-auto flex items-center justify-center" style={{ backgroundColor: 'rgba(0, 0, 0, 0.75)', zIndex: 1000 }}>
+            <div className="bg-white rounded-lg p-4 w-full max-w-2xl mx-4 my-8 shadow-xl">
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xl font-bold text-gray-900">Create New Task</h3>
                     <button
                         onClick={handleClose}
-                        className="text-gray-400 hover:text-gray-300"
+                        className="text-gray-500 hover:text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-full w-8 h-8 flex items-center justify-center"
                     >
-                        ✕
+                        ×
                     </button>
                 </div>
-                
-                {/* Input Mode Selection */}
-                <div className="flex space-x-2 p-6 border-b border-gray-700/50">
+
+                                {/* Input Mode Selection */}
+                <div className="flex space-x-2 p-6 border-b border-gray-300">
                     <button
                         type="button"
                         onClick={() => setInputMode('text')}
-                        className={`px-4 py-2 rounded-lg transition duration-200 ${
-                            inputMode === 'text' 
-                                ? 'bg-orange-500 text-white' 
-                                : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50'
-                        }`}
+                        className={`px-4 py-2 rounded-lg transition duration-200 ${inputMode === 'text'
+                                ? 'bg-orange-500 text-white'
+                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                            }`}
                     >
                         📝 Text Input
                     </button>
                     <button
                         type="button"
                         onClick={() => setInputMode('voice')}
-                        className={`px-4 py-2 rounded-lg transition duration-200 ${
-                            inputMode === 'voice' 
-                                ? 'bg-orange-500 text-white' 
-                                : 'bg-gray-700/50 text-gray-300 hover:bg-gray-600/50'
-                        }`}
+                        className={`px-4 py-2 rounded-lg transition duration-200 ${inputMode === 'voice'
+                                ? 'bg-orange-500 text-white'
+                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                            }`}
                     >
                         🎤 Voice Input
                     </button>
                 </div>
-                
+
                 {inputMode === 'text' ? (
                     <form onSubmit={handleSubmit} className="p-6 space-y-4">
                         {/* Title */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-300 mb-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
                                 Task Title *
                             </label>
                             <input
                                 type="text"
                                 value={formData.title}
-                                onChange={(e) => setFormData({...formData, title: e.target.value})}
-                                className="w-full px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                                className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                                 placeholder="Enter task title"
                                 required
                             />
@@ -337,25 +338,25 @@ const NewTaskModal = ({ isOpen, onClose, onSubmit }) => {
                         {/* Deadline and Estimated Time */}
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-2">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
                                     Deadline
                                 </label>
                                 <input
                                     type="datetime-local"
                                     value={formData.deadline}
-                                    onChange={(e) => setFormData({...formData, deadline: e.target.value})}
-                                    className="w-full px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                                    onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
+                                    className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-2">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
                                     Estimated Time
                                 </label>
                                 <input
                                     type="text"
                                     value={formData.estimatedTime}
-                                    onChange={(e) => setFormData({...formData, estimatedTime: e.target.value})}
-                                    className="w-full px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                                    onChange={(e) => setFormData({ ...formData, estimatedTime: e.target.value })}
+                                    className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                                     placeholder="e.g., 2 hours, 30 minutes"
                                 />
                             </div>
@@ -363,13 +364,13 @@ const NewTaskModal = ({ isOpen, onClose, onSubmit }) => {
 
                         {/* Priority */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-300 mb-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
                                 Priority
                             </label>
                             <select
                                 value={formData.priority}
-                                onChange={(e) => setFormData({...formData, priority: e.target.value})}
-                                className="w-full px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                                onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+                                className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                             >
                                 <option value="low">Low</option>
                                 <option value="medium">Medium</option>
@@ -380,14 +381,14 @@ const NewTaskModal = ({ isOpen, onClose, onSubmit }) => {
 
                         {/* Description */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-300 mb-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
                                 Description
                             </label>
                             <textarea
                                 value={formData.description}
-                                onChange={(e) => setFormData({...formData, description: e.target.value})}
+                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                                 rows={3}
-                                className="w-full px-3 py-2 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none"
+                                className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none"
                                 placeholder="Add any additional details..."
                             />
                         </div>
@@ -397,7 +398,7 @@ const NewTaskModal = ({ isOpen, onClose, onSubmit }) => {
                             <button
                                 type="button"
                                 onClick={handleClose}
-                                className="px-4 py-2 text-gray-300 hover:text-white transition duration-200"
+                                className="px-4 py-2 text-gray-600 hover:text-gray-900 transition duration-200"
                             >
                                 Cancel
                             </button>
@@ -412,9 +413,9 @@ const NewTaskModal = ({ isOpen, onClose, onSubmit }) => {
                 ) : (
                     <div className="p-6 space-y-4">
                         {/* Voice Input Section */}
-                        <div className="bg-gray-700/30 rounded-lg p-4">
+                        <div className="bg-gray-100 rounded-lg p-4">
                             <div className="flex items-center justify-between mb-3">
-                                <h4 className="text-sm font-medium text-gray-300">Voice Input</h4>
+                                <h4 className="text-sm font-medium text-gray-700">Voice Input</h4>
                                 <div className="flex space-x-2">
                                     {!isListening ? (
                                         <>
@@ -456,21 +457,21 @@ const NewTaskModal = ({ isOpen, onClose, onSubmit }) => {
                                     )}
                                 </div>
                             </div>
-                            
+
                             {isListening && (
                                 <div className="flex items-center space-x-2 mb-2">
                                     <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                                    <span className="text-sm text-red-400">Listening...</span>
+                                    <span className="text-sm text-red-600">Listening...</span>
                                 </div>
                             )}
-                            
+
                             {transcript && (
-                                <div className="bg-gray-600/50 rounded p-3">
-                                    <p className="text-sm text-gray-300">{transcript}</p>
+                                <div className="bg-gray-200 rounded p-3">
+                                    <p className="text-sm text-gray-700">{transcript}</p>
                                 </div>
                             )}
-                            
-                            <div className="mt-2 text-xs text-gray-400">
+
+                            <div className="mt-2 text-xs text-gray-600">
                                 💡 Tip: Try "Browser" button if voice recognition doesn't work
                             </div>
                         </div>
@@ -480,7 +481,7 @@ const NewTaskModal = ({ isOpen, onClose, onSubmit }) => {
                             <button
                                 type="button"
                                 onClick={handleClose}
-                                className="px-4 py-2 text-gray-300 hover:text-white transition duration-200"
+                                className="px-4 py-2 text-gray-600 hover:text-gray-900 transition duration-200"
                             >
                                 Cancel
                             </button>

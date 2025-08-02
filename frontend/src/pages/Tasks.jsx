@@ -7,10 +7,24 @@ const Tasks = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [showNewTaskModal, setShowNewTaskModal] = useState(false);
     const [filter, setFilter] = useState('all'); // all, pending, completed
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
 
     useEffect(() => {
-        fetchTasks();
+        checkAuthAndFetchTasks();
     }, []);
+
+    const checkAuthAndFetchTasks = async () => {
+        const customUser = JSON.parse(localStorage.getItem('user'));
+        const gmailToken = localStorage.getItem('gmail_access_token');
+        
+        if (customUser || gmailToken) {
+            setIsAuthenticated(true);
+            fetchTasks();
+        } else {
+            setIsAuthenticated(false);
+            setIsLoading(false);
+        }
+    };
 
     const fetchTasks = async () => {
         try {
@@ -142,7 +156,13 @@ const Tasks = () => {
                         <p className="text-gray-400">Manage and track your tasks</p>
                     </div>
                     <button
-                        onClick={() => setShowNewTaskModal(true)}
+                        onClick={() => {
+                            if (!isAuthenticated) {
+                                alert('Please log in to create tasks');
+                                return;
+                            }
+                            setShowNewTaskModal(true);
+                        }}
                         className="bg-gradient-to-r from-orange-500 to-yellow-500 text-white font-semibold py-3 px-6 rounded-lg hover:from-orange-600 hover:to-yellow-600 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-gray-800 transition duration-200 transform hover:scale-[1.02]"
                     >
                         <svg className="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -279,11 +299,13 @@ const Tasks = () => {
             </div>
 
             {/* New Task Modal */}
-            <NewTaskModal
-                isOpen={showNewTaskModal}
-                onClose={() => setShowNewTaskModal(false)}
-                onSubmit={handleNewTask}
-            />
+            {showNewTaskModal && (
+                <NewTaskModal
+                    isOpen={true}
+                    onClose={() => setShowNewTaskModal(false)}
+                    onSubmit={handleNewTask}
+                />
+            )}
         </div>
     );
 };
